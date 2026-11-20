@@ -1,0 +1,9 @@
+# 金鑰與密碼
+.env
+# 個人的 ngrok 指令／網址
+ngrok.txt
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

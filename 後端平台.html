@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulEcho 後台管理系統 - 風險分類監控</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-main: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --primary-color: #4a90e2;
+            --border-color: #e2e8f0;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        select,
+        input,
+        button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        /* 風險標籤樣式 */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+        }
+
+        .badge-CRITICAL {
+            background-color: #d9534f;
+        }
+
+        .badge-HIGH {
+            background-color: #f0ad4e;
+        }
+
+        .badge-MEDIUM {
+            background-color: #5bc0de;
+        }
+
+        .badge-LOW {
+            background-color: #5cb85c;
+        }
+
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-secondary);
+        }
+
+        .report-box {
+            white-space: pre-wrap;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            line-height: 1.6;
+            margin-top: 15px;
+            font-family: monospace;
+        }
+
+        /* 使用者清單 Tag 列表 */
+        .user-tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .user-tag {
+            background: #eef2f5;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2><i class="fa-solid fa-user-shield"></i> SoulEcho 風險預警與人物側寫後台</h2>
+        </div>
+
+        <!-- 新增功能：系統所有使用者名單 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3><i class="fa-solid fa-users"></i> 全系統使用者名單</h3>
+                <button onclick="fetchAllUsers()"><i class="fa-solid fa-list-ul"></i> 載入所有使用者名單</button>
+            </div>
+            <div id="allUsersContainer" style="display: none; margin-top: 15px;">
+                <hr style="margin: 12px 0; border: 0; border-top: 1px solid var(--border-color);">
+                <div id="allUsersList" class="user-tag-list">
+                    <!-- 使用者名單會動態渲染於此 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能一：依危險分類查詢使用者 -->
+        <div class="card">
+            <h3><i class="fa-solid fa-filter"></i> 預警紀錄與危險分類篩選</h3>
+            <hr style="margin: 12px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+            <div class="filter-bar">
+                <label for="riskSelect"><b>選擇風險等級：</b></label>
+                <select id="riskSelect" onchange="fetchRiskUsers()">
+                    <option value="ALL">全部等級 (ALL)</option>
+                    <option value="CRITICAL">🚨 極高風險 (CRITICAL)</option>
+                    <option value="HIGH">⚠️ 高風險 (HIGH)</option>
+                    <option value="MEDIUM">🟡 中風險 (MEDIUM)</option>
+                    <option value="LOW">🟢 低風險 (LOW)</option>
+                </select>
+                <button onclick="fetchRiskUsers()"><i class="fa-solid fa-rotate-right"></i> 重新整理</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>使用者 (Email)</th>
+                        <th>風險等級</th>
+                        <th>觸發訊息內容</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="riskUserTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-secondary);">載入中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 功能二：全方位人物側寫查詢 -->
+        <div class="card">
+            <h3><i class="fa-solid fa-brain"></i> 全方位人物側寫檢視</h3>
+            <hr style="margin: 12px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <input type="email" id="targetEmail" style="flex: 1;" placeholder="請輸入欲分析的使用者 Email...">
+                <button onclick="generateProfile()"><i class="fa-solid fa-wand-magic-sparkles"></i> 生成 AI 側寫報告</button>
+            </div>
+
+            <div id="profileResult" style="display: none;">
+                <h4>摘要資訊：</h4>
+                <div id="summaryReport"
+                    style="background:#eef2f5; padding:12px; border-radius:6px; margin: 8px 0; font-family: monospace;">
+                </div>
+
+                <h4>AI 側寫分析報告：</h4>
+                <div id="profileReport" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 由 server2.py 開啟網頁時用同一個網址；直接雙擊 HTML 檔開啟時改連本機後端
+        const API_BASE = location.protocol.startsWith('http') ? '' : 'http://localhost:5000';
+
+        // 後台密碼（.env 的 ADMIN_PASSWORD）：第一次呼叫後台 API 時詢問，存在這個分頁裡
+        const _rawFetch = window.fetch.bind(window);
+        window.fetch = async (url, opts = {}) => {
+            if (!String(url).includes('/api/admin/')) return _rawFetch(url, opts);
+            const send = () => _rawFetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Admin-Key': sessionStorage.getItem('adminKey') || '' } });
+            let res = await send();
+            if (res.status === 401) {
+                const key = prompt('請輸入後台密碼（.env 的 ADMIN_PASSWORD）');
+                if (key === null) return res;
+                sessionStorage.setItem('adminKey', key);
+                res = await send();
+            }
+            return res;
+        };
+
+        // 頁面載入時自動讀取一次預警使用者列表
+        window.onload = () => {
+            fetchRiskUsers();
+        };
+
+        // 新增：取得全系統所有使用者名單（已修正 [object Object] 問題）
+        async function fetchAllUsers() {
+            const container = document.getElementById('allUsersContainer');
+            const listDiv = document.getElementById('allUsersList');
+
+            container.style.display = 'block';
+            listDiv.innerHTML = '<span style="color: var(--text-secondary);">載入使用者清單中...</span>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/all_users`, {
+                    method: 'GET',
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                const data = await res.json();
+
+                if (data.users && data.users.length > 0) {
+                    listDiv.innerHTML = '';
+                    data.users.forEach(item => {
+                        // 相容處理：不論後端傳回的是字串或物件，皆正確取出顯示名稱/Email
+                        let userEmail = '';
+                        if (typeof item === 'object' && item !== null) {
+                            userEmail = item.email || item.user_id || item.id || JSON.stringify(item);
+                        } else {
+                            userEmail = item;
+                        }
+
+                        const tag = document.createElement('div');
+                        tag.className = 'user-tag';
+                        tag.innerHTML = `
+                            <i class="fa-solid fa-user"></i> <b>${userEmail}</b>
+                            <button onclick="quickSelectUser('${userEmail}')" style="font-size: 0.75rem; padding: 4px 8px; margin-left: 6px;">
+                                <i class="fa-solid fa-magnifying-glass"></i> 側寫
+                            </button>
+                        `;
+                        listDiv.appendChild(tag);
+                    });
+                } else {
+                    listDiv.innerHTML = '<span style="color: var(--text-secondary);">目前無任何註冊使用者資料。</span>';
+                }
+            } catch (err) {
+                console.error("Fetch all users error:", err);
+                listDiv.innerHTML = '<span style="color: red;">載入失敗，請確認後端 API (`/api/admin/all_users`) 是否正常運行。</span>';
+            }
+        }
+
+        // 1. 依選取的風險等級，撈取預警使用者紀錄
+        async function fetchRiskUsers() {
+            const riskLevel = document.getElementById('riskSelect').value;
+            const tableBody = document.getElementById('riskUserTable');
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">資料載入中...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/risk_users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ risk_level: riskLevel })
+                });
+
+                const data = await res.json();
+
+                if (data.users && data.users.length > 0) {
+                    tableBody.innerHTML = '';
+                    data.users.forEach(u => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${u.created_at}</td>
+                            <td><b>${u.user_id}</b></td>
+                            <td><span class="badge badge-${u.risk_level}">${u.risk_level}</span></td>
+                            <td style="max-width: 300px; word-break: break-all;">${u.trigger_message}</td>
+                            <td>
+                                <button onclick="quickSelectUser('${u.user_id}')" style="font-size: 0.8rem; padding: 6px 10px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i> 查看側寫
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">尚無符合條件的預警紀錄</td></tr>';
+                }
+            } catch (err) {
+                console.error("Fetch risk users error:", err);
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">載入失敗，請檢查 API 連線狀況</td></tr>';
+            }
+        }
+
+        // 快速帶入 Email 並產生側寫報告
+        function quickSelectUser(email) {
+            document.getElementById('targetEmail').value = email;
+            generateProfile();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // 2. 產出人物側寫報告
+        async function generateProfile() {
+            const email = document.getElementById('targetEmail').value.trim();
+            if (!email) return alert('請輸入使用者 Email');
+
+            const resultDiv = document.getElementById('profileResult');
+            const summaryBox = document.getElementById('summaryReport');
+            const profileBox = document.getElementById('profileReport');
+
+            resultDiv.style.display = 'block';
+            summaryBox.innerText = '讀取中...';
+            profileBox.innerText = '🤖 AI 正在分析歷史日記與對話紀錄，生成人物側寫報告中，請稍候...';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ target_user_id: email })
+                });
+
+                const data = await res.json();
+
+                if (data.profile_report) {
+                    summaryBox.innerText = data.summary_report;
+                    profileBox.innerText = data.profile_report;
+                } else {
+                    profileBox.innerText = '❌ 生成失敗：' + (data.error || '未知錯誤');
+                }
+            } catch (err) {
+                console.error("Generate profile error:", err);
+                profileBox.innerText = '❌ 請求發生異常，請重試。';
+            }
+        }
+    </script>
+</body>
+
+</html>
